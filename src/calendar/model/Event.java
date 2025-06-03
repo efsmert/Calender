@@ -1,5 +1,7 @@
 package calendar.model;
 
+import java.util.ArrayList;
+
 public class Event implements IEvent {
   private String subject;
   private String location;
@@ -7,11 +9,15 @@ public class Event implements IEvent {
   private Date endDate;
   private Time startTime;
   private Time endTime;
-  private String status;
+  private boolean status;
   private String description;
+  private boolean isSeries;
+  private ArrayList<DayOfWeek> daysOfWeek;
+  private static EventBuilder builder;
+
 
   public Event(String subject, String location, Date startDate,
-               Date endDate, Time startTime, Time endTime, String status, String description){
+               Date endDate, Time startTime, Time endTime, boolean status, String description){
     this.subject = subject;
     this.location = location;
     this.startDate = startDate;
