@@ -1,14 +1,13 @@
 package calendar.model;
 
+import java.time.DayOfWeek;
 import java.util.ArrayList;
 
 public class Event implements IEvent {
   private String subject;
   private String location;
-  private Date startDate;
-  private Date endDate;
-  private Time startTime;
-  private Time endTime;
+  private DateTime start;
+  private DateTime end;
   private boolean status;
   private String description;
   private boolean isSeries;
@@ -16,14 +15,11 @@ public class Event implements IEvent {
   private static EventBuilder builder;
 
 
-  public Event(String subject, String location, Date startDate,
-               Date endDate, Time startTime, Time endTime, boolean status, String description){
+  public Event(String subject, String location, DateTime start, DateTime end, boolean status, String description){
     this.subject = subject;
     this.location = location;
-    this.startDate = startDate;
-    this.endDate = endDate;
-    this.startTime = startTime;
-    this.endTime = endTime;
+    this.start = start;
+    this.end = end;
     this.status = status;
     this.description = description;
   }
@@ -44,43 +40,28 @@ public class Event implements IEvent {
     this.location = newLocation;
   }
 
-  public Date getstartDate() {
-    return startDate;
+  public DateTime getStart() {
+    return start;
   }
 
-  public void setStartDate(Date newStartDate) {
-    this.startDate = newStartDate;
+  public void setStart(DateTime newStartDate) {
+    this.start = newStartDate;
   }
 
-  public Date getendDate() {
-    return endDate;
+  public DateTime getEnd() {
+    return end;
   }
 
-  public void setEndDate(Date newEndDate) {
-    this.endDate = newEndDate;
+  public void setEnd(DateTime newEndDate) {
+    this.end = newEndDate;
   }
 
-  public Time getStartTime() {
-    return startTime;
-  }
 
-  public void setStartTime(Time newStartTime) {
-    this.startTime = newStartTime;
-  }
-
-  public Time getEndTime() {
-    return endTime;
-  }
-
-  public void setEndTime(Time newEndTime) {
-    this.endTime = newEndTime;
-  }
-
-  public String getStatus() {
+  public boolean getStatus() {
     return status;
   }
 
-  public void setStatus(String newStatus) {
+  public void setStatus(boolean newStatus) {
     this.status = newStatus;
   }
 

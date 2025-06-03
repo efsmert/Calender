@@ -101,6 +101,10 @@ public class Date {
     this.leap = (this.year % 4 == 0 && (this.year % 100 != 0 || this.year % 400 == 0));
   }
 
+  public int getYear() { return year; }
+  public int getMonth() { return month; }
+  public int getDay() { return day; }
+
   /**
    * returns the date formatted as "yyyy‑mm‑dd" with zero padding.
    *

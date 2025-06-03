@@ -23,6 +23,9 @@ public class Time {
     this.minute = minute;
   }
 
+  public int getHour() { return hour; }
+  public int getMinute() { return minute; }
+
   /**
    * Returns the time formatted as "hh:mm" with zero padding.
    */
