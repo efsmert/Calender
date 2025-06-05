@@ -1,0 +1,6 @@
+# Commands for Calendar Application - Missing Exit
+
+create event "Morning Briefing" from 2025-10-01T09:00 to 2025-10-01T09:30
+print events on 2025-10-01
+show status on 2025-10-01T09:15
+# This file intentionally lacks the 'exit' command at the end.

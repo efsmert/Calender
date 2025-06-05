@@ -1,0 +1,100 @@
+# Valid Commands for Calendar Application
+
+# Create Single Events
+create event "Team Meeting" from 2025-07-15T10:00 to 2025-07-15T11:30
+create event "Lunch with Client" from 2025-07-15T12:30 to 2025-07-15T13:30
+# Add details via edit
+edit event description "Lunch with Client" from 2025-07-15T12:30 to 2025-07-15T13:30 with "Discuss project X"
+edit event location "Lunch with Client" from 2025-07-15T12:30 to 2025-07-15T13:30 with "Downtown Cafe"
+edit event status "Lunch with Client" from 2025-07-15T12:30 to 2025-07-15T13:30 with "public"
+create event "Doctor Appointment" on 2025-07-16
+create event "Project Deadline" from 2025-07-20T09:00 to 2025-07-20T17:00
+# Add details via edit
+edit event location "Project Deadline" from 2025-07-20T09:00 to 2025-07-20T17:00 with "Office"
+
+# Create Event Series
+create event "Weekly Sync" from 2025-07-21T14:00 to 2025-07-21T15:00 repeats M for 4 times
+create event "Daily Standup" from 2025-07-22T09:00 to 2025-07-22T09:15 repeats MTWRF until 2025-07-26
+create event "Yoga Class" on 2025-07-23 repeats W for 3 times
+# Add details via edit
+# For all-day events, use 08:00 to 17:00 for identification in edit commands
+edit event location "Yoga Class" from 2025-07-23T08:00 to 2025-07-23T17:00 with "Online"
+edit event status "Yoga Class" from 2025-07-23T08:00 to 2025-07-23T17:00 with "private"
+create event "Book Club" from 2025-08-01T18:00 to 2025-08-01T19:30 repeats F until 2025-08-29
+
+# Query Events
+print events on 2025-07-15
+print events from 2025-07-21T00:00 to 2025-07-28T23:59
+show status on 2025-07-15T10:30
+show status on 2025-07-15T12:00
+
+# Edit Events (simple cases, assuming events from above exist)
+# To test edit, these commands assume prior creation.
+# Example: Edit the "Team Meeting"
+edit event subject "Team Meeting" from 2025-07-15T10:00 to 2025-07-15T11:30 with "Important Team Meeting"
+# Now the subject is "Important Team Meeting". Use this for the next edit.
+edit event location "Important Team Meeting" from 2025-07-15T10:00 to 2025-07-15T11:30 with "Conference Room A"
+
+# Example: Edit "Weekly Sync" series (first instance is 2025-07-21T14:00)
+# Create it first to ensure it exists for editing tests
+create event "Weekly Sync Original" from 2025-07-21T14:00 to 2025-07-21T15:00 repeats M for 4 times
+# Edit only this instance (2025-07-21)
+edit event subject "Weekly Sync Original" from 2025-07-21T14:00 to 2025-07-21T15:00 with "Focused Weekly Sync"
+# Edit this and future instances (starting 2025-07-28, assuming the first one was made an exception)
+# The original series event for 2025-07-28 would still be "Weekly Sync Original"
+edit events description "Weekly Sync Original" from 2025-07-28T14:00 with "Prep for next week"
+# Edit all instances in the original series (identified by an unmodified event if possible, or the earliest)
+# Let's assume we target the original series via an instance that wasn't individually modified yet, e.g. 2025-08-04
+edit series status "Weekly Sync Original" from 2025-08-04T14:00 with "private"
+
+# Scenario from prompt (requires specific dates and careful sequencing)
+# 1. Create series "First"
+create event "First" from 2025-05-05T10:00 to 2025-05-05T11:00 repeats MW for 6 times
+# Instances: May 5, 7, 12, 14, 19, 21 (all 10:00-11:00, subject "First")
+# Print to verify
+print events from 2025-05-01T00:00 to 2025-05-30T23:59
+
+# 2. Edit subject of May 12 instance to "Second" (this and future)
+# Original: May 5(First), 7(First), 12(First), 14(First), 19(First), 21(First)
+edit events subject "First" from 2025-05-12T10:00 with "Second"
+# Expected: May 5(First), 7(First), 12(Second), 14(Second), 19(Second), 21(Second)
+print events from 2025-05-01T00:00 to 2025-05-30T23:59
+
+# 3. Edit subject of May 5 instance to "Third" (all in original series of "First")
+# This targets the series associated with "First" at May 5, 10:00.
+# Should change May 5, May 7 to "Third". May 12+ are now "Second" and considered exceptions or a new series.
+edit series subject "First" from 2025-05-05T10:00 with "Third"
+# Expected: May 5(Third), 7(Third), 12(Second), 14(Second), 19(Second), 21(Second)
+print events from 2025-05-01T00:00 to 2025-05-30T23:59
+
+# 4. Edit start time of May 12 (now "Second", 10:00 AM) to 10:30 AM (this and future)
+# This targets the event "Second" at May 12, 10:00.
+edit events start "Second" from 2025-05-12T10:00 with "2025-05-12T10:30"
+# To maintain 1-hour duration, also edit end time for these instances.
+# The "Second" events from May 12, 14, 19, 21 now start at 10:30. Their original end was 11:00.
+# If we change start to 10:30, end should become 11:30 to keep duration.
+edit events end "Second" from 2025-05-12T10:30 with "2025-05-12T11:30" # Target by new start time
+# Expected: May 5(Third, 10-11), 7(Third, 10-11), 12(Second, 10:30-11:30), 14(Second, 10:30-11:30), 19(Second, 10:30-11:30), 21(Second, 10:30-11:30)
+print events from 2025-05-01T00:00 to 2025-05-30T23:59
+
+# 5. Edit subject of May 5 (now "Third", 10:00 AM) to "Fourth" (all in its series)
+# This targets the series associated with "Third" at May 5, 10:00.
+edit series subject "Third" from 2025-05-05T10:00 with "Fourth"
+# Expected: May 5(Fourth, 10-11), 7(Fourth, 10-11), 12(Second, 10:30-11:30), ...
+print events from 2025-05-01T00:00 to 2025-05-30T23:59
+
+# 6. Edit subject of May 12 (now "Second", 10:30 AM) to "Fifth" (all in its new series)
+# This targets the series/group associated with "Second" at May 12, 10:30.
+edit series subject "Second" from 2025-05-12T10:30 with "Fifth"
+# Expected: May 5(Fourth,10-11), 7(Fourth,10-11), 12(Fifth,10:30-11:30), 14(Fifth,10:30-11:30), 19(Fifth,10:30-11:30), 21(Fifth,10:30-11:30)
+print events from 2025-05-01T00:00 to 2025-05-30T23:59
+
+# Final check
+print events on 2025-05-05
+print events on 2025-05-07
+print events on 2025-05-12
+print events on 2025-05-14
+print events on 2025-05-19
+print events on 2025-05-21
+
+exit

@@ -1,0 +1,51 @@
+# Invalid Commands for Calendar Application
+
+# Syntactically Incorrect Commands
+create event MissingDetails
+create event "Bad Date" from 2025/07/15T10:00 to 2025-07-15T11:00
+create event "Bad Time" from 2025-07-15T1000 to 2025-07-15T11:00
+create event "No Subject" from 2025-07-15T10:00 to 2025-07-15T11:00 repeats M for 0 times
+create event "Bad Weekday" from 2025-07-15T10:00 to 2025-07-15T11:00 repeats X for 2 times
+create event "No Occurrences or End Date" from 2025-07-15T10:00 to 2025-07-15T11:00 repeats M
+create event "Both Occurrences and End Date" from 2025-07-15T10:00 to 2025-07-15T11:00 repeats M for 2 times until 2025-08-01
+create event "All day bad date" on 2025-13-01
+edit event subject "NonExistent" from 2025-01-01T10:00 to 2025-01-01T11:00 with "New Subject"
+print evnts on 2025-07-15
+show stat on 2025-07-15T10:00
+unknowncommand some arguments
+
+# Logically Incorrect Commands (assuming an empty calendar initially for some)
+# Create a valid event first for context for some logical errors
+create event "Test Event" from 2025-09-01T10:00 to 2025-09-01T11:00
+
+# Duplicate event creation
+create event "Test Event" from 2025-09-01T10:00 to 2025-09-01T11:00
+
+# Edit non-existent event
+edit event subject "No Such Event" from 2025-09-02T10:00 to 2025-09-02T11:00 with "New Subject"
+
+# Edit with ambiguity (if multiple events matched, though current simple find might not hit this easily without series)
+# To test ambiguity, create two distinct events that could be ambiguously targeted by "edit events" or "edit series"
+create event "Ambiguous" from 2025-09-03T10:00 to 2025-09-03T11:00
+create event "Ambiguous" from 2025-09-03T10:00 to 2025-09-03T12:00 # Different end time
+# The following would be ambiguous if identification was only by subject and start for "edit events"
+# edit events location "Ambiguous" from 2025-09-03T10:00 with "New Location"
+# Current model's find logic for "events" and "series" scope might pick the first if multiple non-series match.
+# A true ambiguity error would occur if, for example, two *different series* started with the same subject/time.
+
+# Create series where start/end are on different days (violates constraint)
+create event "MultiDay Series" from 2025-09-04T10:00 to 2025-09-05T11:00 repeats M for 2 times
+
+# Create series with end date before start date
+create event "Bad Series Dates" from 2025-09-10T10:00 to 2025-09-10T11:00 repeats M until 2025-09-01
+
+# Print events with invalid date range (start after end)
+print events from 2025-09-01T12:00 to 2025-09-01T10:00
+
+# Edit event command missing the 'to' part for unique identification
+edit event subject "Test Event" from 2025-09-01T10:00 with "New Subject Value"
+
+# Edit events/series command with an unnecessary 'to' part
+edit events subject "Test Event" from 2025-09-01T10:00 to 2025-09-01T11:00 with "Another Subject"
+
+exit
