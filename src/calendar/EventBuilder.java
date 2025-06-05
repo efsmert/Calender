@@ -1,19 +1,27 @@
 package calendar;
 
-import java.time.DayOfWeek; // Retaining as it was in your original, though not used in current build()
-import java.util.ArrayList; // Retaining as it was in your original
+import java.time.DayOfWeek;
+import java.util.ArrayList;
 
+/**
+ * Builder class for creating Event instances using the builder pattern.
+ * Provides a fluent interface for setting event properties and validates constraints.
+ */
 public class EventBuilder {
     private String subject;
     private DateTime start;
-    // private DateTime startCopy; // This was causing issues with all-day logic, removing
     private String description;
     private DateTime end;
     private String location;
-    private String statusValue; // Changed from isPrivate to match Event's status (String)
-    // private ArrayList<DayOfWeek> daysOfWeek; // This seems to belong to series creation, not single event build
+    private String statusValue;
 
-    // Constructor for an event that might be all-day by default
+    /**
+     * Constructs an EventBuilder with required subject and start time.
+     * Sets default values for optional properties.
+     * @param subject the event subject (required)
+     * @param startDateTime the start date and time (required)
+     * @throws IllegalArgumentException if subject is null/empty or startDateTime is null
+     */
     public EventBuilder(String subject, DateTime startDateTime) {
         if (subject == null || subject.trim().isEmpty()) {
             throw new IllegalArgumentException("Event subject cannot be null or empty.");
@@ -22,33 +30,34 @@ public class EventBuilder {
             throw new IllegalArgumentException("Start DateTime cannot be null.");
         }
         this.subject = subject;
-        this.start = startDateTime; // Initial start time
-        
-        // Default to all-day (8 AM - 5 PM) if end is not specified later
-        // The actual setting of 8-5 for all-day will be handled if 'end' is not called.
-        // Or, the model can enforce this if an event is created with null end.
-        this.end = null; // Explicitly null, model/controller will interpret as all-day if not set
-        
-        // Default values as per your original builder
+        this.start = startDateTime;
+        this.end = null;
         this.description = "No Description Provided";
         this.location = "No Location Provided";
-        this.statusValue = "public"; // Default status
+        this.statusValue = "public";
     }
 
-    // Private constructor for static factory method, if you prefer that style
+    /**
+     * Private constructor for static factory methods.
+     */
     private EventBuilder() {}
 
-    // Static factory method as in your original
+    /**
+     * Static factory method to create a new EventBuilder instance.
+     * @param subject the event subject
+     * @param startDateTime the start date and time
+     * @return a new EventBuilder instance
+     */
     public static EventBuilder createBuilder(String subject, DateTime startDateTime){
         return new EventBuilder(subject, startDateTime);
     }
-    
-    // Static factory for a completely empty builder, if needed, though less safe.
-    // public static EventBuilder createEmptyBuilder(){
-    //     return new EventBuilder();
-    // }
 
-
+    /**
+     * Sets the event subject.
+     * @param subject the event subject
+     * @return this EventBuilder instance for method chaining
+     * @throws IllegalArgumentException if subject is null or empty
+     */
     public EventBuilder subject(String subject) {
         if (subject == null || subject.trim().isEmpty()) {
             throw new IllegalArgumentException("Event subject cannot be null or empty.");
@@ -57,6 +66,12 @@ public class EventBuilder {
         return this;
     }
 
+    /**
+     * Sets the event start date and time.
+     * @param startDateTime the start date and time
+     * @return this EventBuilder instance for method chaining
+     * @throws IllegalArgumentException if startDateTime is null
+     */
     public EventBuilder start(DateTime startDateTime) {
         if (startDateTime == null) {
             throw new IllegalArgumentException("Start DateTime cannot be null.");
@@ -65,13 +80,25 @@ public class EventBuilder {
         return this;
     }
 
+    /**
+     * Sets the event description.
+     * @param description the event description
+     * @return this EventBuilder instance for method chaining
+     */
     public EventBuilder description(String description) {
         this.description = description;
         return this;
     }
 
+    /**
+     * Sets the event end date and time.
+     * @param endDateTime the end date and time (can be null for all-day events)
+     * @return this EventBuilder instance for method chaining
+     * @throws IllegalStateException if start time has not been set
+     * @throws IllegalArgumentException if endDateTime is before start time
+     */
     public EventBuilder end(DateTime endDateTime) {
-        if (endDateTime == null) { // Allowing end to be explicitly set to null (e.g. to revert to all-day)
+        if (endDateTime == null) {
             this.end = null;
             return this;
         }
@@ -85,11 +112,22 @@ public class EventBuilder {
         return this;
     }
 
+    /**
+     * Sets the event location.
+     * @param location the event location
+     * @return this EventBuilder instance for method chaining
+     */
     public EventBuilder location(String location) {
         this.location = location;
         return this;
     }
 
+    /**
+     * Sets the event status.
+     * @param status the event status ("public" or "private")
+     * @return this EventBuilder instance for method chaining
+     * @throws IllegalArgumentException if status is not "public" or "private"
+     */
     public EventBuilder status(String status) {
         if (status != null && (status.equalsIgnoreCase("public") || status.equalsIgnoreCase("private"))) {
             this.statusValue = status.toLowerCase();
@@ -99,6 +137,11 @@ public class EventBuilder {
         return this;
     }
 
+    /**
+     * Builds and returns a new Event instance with the configured properties.
+     * @return a new Event instance
+     * @throws IllegalStateException if subject or start time is not set
+     */
     public IEvent build() {
         if (subject == null || start == null) {
             throw new IllegalStateException("Subject and Start DateTime are mandatory to build an event.");
@@ -106,14 +149,6 @@ public class EventBuilder {
         
         DateTime effectiveEnd = this.end;
         DateTime effectiveStart = this.start;
-
-        if (this.end == null) { // If end was not set, it's an all-day event
-            // As per requirements: 8 AM to 5 PM on the start date.
-            // Your original builder set start to 8 AM and end to 5 PM if only start date was given.
-            // We'll ensure this logic is applied here or in the model.
-            // For now, the Event constructor will take start as is, and null end.
-            // The model's createEvent method will then adjust start/end for all-day.
-        }
 
         return new Event(subject, location, effectiveStart, effectiveEnd, statusValue, description);
     }

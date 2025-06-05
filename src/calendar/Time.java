@@ -1,5 +1,9 @@
 package calendar;
 
+/**
+ * Represents a time of day with hour and minute components.
+ * Uses 24-hour format with validation for proper time ranges.
+ */
 public class Time {
   private int hour;
   private int minute;
@@ -21,17 +25,32 @@ public class Time {
     this.minute = minute;
   }
 
+  /**
+   * Gets the hour component of this time.
+   * @return the hour (0-23)
+   */
   public int getHour() { return hour; }
+  
+  /**
+   * Gets the minute component of this time.
+   * @return the minute (0-59)
+   */
   public int getMinute() { return minute; }
 
   /**
    * Returns the time formatted as "hh:mm" with zero padding.
+   * @return a string representation of this time in HH:mm format
    */
   @Override
   public String toString() {
     return String.format("%02d:%02d", hour, minute);
   }
 
+  /**
+   * Checks if this Time is equal to another object.
+   * @param o the object to compare with
+   * @return true if the objects are equal, false otherwise
+   */
   @Override
   public boolean equals(Object o) {
       if (this == o) return true;
@@ -40,6 +59,10 @@ public class Time {
       return hour == time.hour && minute == time.minute;
   }
 
+  /**
+   * Returns a hash code for this Time.
+   * @return the hash code value for this Time
+   */
   @Override
   public int hashCode() {
       int result = hour;
