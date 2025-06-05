@@ -9,38 +9,34 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 /**
- * this class implements the {@link IController} interface.
- * it handles user input and interacts with the model and view components.
+ * This class implements the {@link IController} interface.
+ * It handles user input and interacts with the model and view components.
  */
 public class CalendarControllerImpl implements IController {
-/**
-     * constructs a new calendarcontrollerimpl.
-     * @param model the calendar model
-     * @param view the calendar view
-     */
+    
     private ICalendarModel model;
     private ICalendarView view;
 
-
-/**
-     * runs the calendar application in the specified mode.
-     * @param mode the application mode ("interactive" or "headless")
-     * @param commandFilePath the path to the command file (for headless mode)
+    /**
+     * Constructs a new CalendarControllerImpl.
+     * @param model the calendar model
+     * @param view the calendar view
      */
     public CalendarControllerImpl(ICalendarModel model, ICalendarView view) {
         this.model = model;
         this.view = view;
     }
 
+    /**
+     * Runs the calendar application in the specified mode.
+     * @param mode the application mode ("interactive" or "headless")
+     * @param commandFilePath the path to the command file (for headless mode)
+     */
     @Override
     public void run(String mode, String commandFilePath) {
         if ("interactive".equalsIgnoreCase(mode)) {
             runInteractiveMode();
-/**
-     * runs the application in interactive mode, prompting the user for commands.
-     */
         } else if ("headless".equalsIgnoreCase(mode)) {
             if (commandFilePath == null || commandFilePath.trim().isEmpty()) {
                 view.displayError("Command file path not specified for headless mode.");
@@ -52,14 +48,13 @@ public class CalendarControllerImpl implements IController {
         }
     }
 
+    /**
+     * Runs the application in interactive mode, prompting the user for commands.
+     */
     private void runInteractiveMode() {
         view.displayMessage("Interactive mode started. Type 'exit' to quit.");
         String command;
         while (true) {
-/**
-     * runs the application in headless mode, processing commands from a file.
-     * @param filePath the path to the command file
-     */
             command = view.getCommand();
             if (command == null) {
                 view.displayError("Failed to read command. Exiting.");
@@ -74,6 +69,10 @@ public class CalendarControllerImpl implements IController {
         view.close();
     }
 
+    /**
+     * Runs the application in headless mode, processing commands from a file.
+     * @param filePath the path to the command file
+     */
     private void runHeadlessMode(String filePath) {
         view.displayMessage("Headless mode started. Processing commands from: " + filePath);
         boolean exitCommandFound = false;
@@ -107,6 +106,12 @@ public class CalendarControllerImpl implements IController {
         view.close();
     }
 
+    /**
+     * Parses a date string in YYYY-MM-DD format and returns a Date object.
+     * @param dateStr the date string to parse
+     * @return a Date object representing the parsed date
+     * @throws IllegalArgumentException if the date string format is invalid
+     */
     private Date parseDateString(String dateStr) throws IllegalArgumentException {
         if (dateStr == null || !dateStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
             throw new IllegalArgumentException("Invalid date string format. Expected YYYY-MM-DD. Received: " + dateStr);
@@ -115,9 +120,15 @@ public class CalendarControllerImpl implements IController {
         int year = Integer.parseInt(parts[0]);
         int month = Integer.parseInt(parts[1]);
         int day = Integer.parseInt(parts[2]);
-        return new Date(day, month, year); // Your Date constructor: day, month, year
+        return new Date(day, month, year);
     }
 
+    /**
+     * Parses a time string in HH:mm format and returns a Time object.
+     * @param timeStr the time string to parse
+     * @return a Time object representing the parsed time
+     * @throws IllegalArgumentException if the time string format is invalid
+     */
     private Time parseTimeString(String timeStr) throws IllegalArgumentException {
         if (timeStr == null || !timeStr.matches("\\d{2}:\\d{2}")) {
             throw new IllegalArgumentException("Invalid time string format. Expected HH:mm. Received: " + timeStr);
@@ -128,6 +139,12 @@ public class CalendarControllerImpl implements IController {
         return new Time(hour, minute);
     }
 
+    /**
+     * Parses a date-time string in YYYY-MM-DDTHH:mm format and returns a DateTime object.
+     * @param dateTimeStr the date-time string to parse
+     * @return a DateTime object representing the parsed date and time
+     * @throws IllegalArgumentException if the date-time string format is invalid
+     */
     private DateTime parseDateTimeString(String dateTimeStr) throws IllegalArgumentException {
         if (dateTimeStr == null || !dateTimeStr.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}")) {
             throw new IllegalArgumentException("Invalid date/time string format. Expected YYYY-MM-DDTHH:mm. Received: " + dateTimeStr);
@@ -138,6 +155,11 @@ public class CalendarControllerImpl implements IController {
         return new DateTime(date, time);
     }
     
+    /**
+     * Extracts the subject from a raw subject token by removing surrounding quotes if present.
+     * @param rawSubjectToken the raw subject token that may be quoted
+     * @return the extracted subject string without quotes
+     */
     private String extractSubject(String rawSubjectToken) {
         if (rawSubjectToken.startsWith("\"") && rawSubjectToken.endsWith("\"") && rawSubjectToken.length() >=2) {
             return rawSubjectToken.substring(1, rawSubjectToken.length() - 1);
@@ -145,6 +167,11 @@ public class CalendarControllerImpl implements IController {
         return rawSubjectToken;
     }
     
+    /**
+     * Extracts a quoted value by removing surrounding quotes if present.
+     * @param rawValue the raw value that may be quoted
+     * @return the extracted value string without quotes
+     */
     private String extractQuotedValue(String rawValue) {
         rawValue = rawValue.trim();
         if (rawValue.startsWith("\"") && rawValue.endsWith("\"") && rawValue.length() >= 2) {
@@ -153,7 +180,10 @@ public class CalendarControllerImpl implements IController {
         return rawValue;
     }
 
-
+    /**
+     * Processes a single command by parsing it and delegating to appropriate handler methods.
+     * @param command the command string to process
+     */
     private void processCommand(String command) {
         String trimmedCommand = command.trim();
         String[] commandParts = trimmedCommand.split("\\s+");
@@ -189,6 +219,12 @@ public class CalendarControllerImpl implements IController {
         }
     }
 
+    /**
+     * Parses a weekdays string and returns a list of DayOfWeek objects.
+     * @param weekdaysString the string containing weekday codes (M, T, W, R, F, S, U)
+     * @return a list of DayOfWeek objects representing the parsed weekdays
+     * @throws IllegalArgumentException if an invalid weekday code is encountered
+     */
     private List<DayOfWeek> parseWeekdays(String weekdaysString) {
         List<DayOfWeek> days = new ArrayList<>();
         if (weekdaysString == null) return days;
@@ -208,6 +244,10 @@ public class CalendarControllerImpl implements IController {
         return days;
     }
 
+    /**
+     * Handles the 'create' command for creating events and event series.
+     * @param command the full create command string
+     */
     private void handleCreateCommand(String command) {
         Pattern createEventPattern = Pattern.compile(
             "create event (\"[^\"]+\"|[^\\s]+) from (\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}) to (\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2})(?: repeats ([MTWRFSU]+) (?:for (\\d+) times|until (\\d{4}-\\d{2}-\\d{2})))?(.*)", Pattern.CASE_INSENSITIVE);
@@ -230,9 +270,9 @@ public class CalendarControllerImpl implements IController {
         String subject = extractSubject(matcher.group(1));
         DateTime startDateTime;
         DateTime endDateTime = null;
-        String description = null; // Default
-        String location = null;    // Default
-        String status = "public";  // Default status for new events
+        String description = null;
+        String location = null;
+        String status = "public";
 
         if (isAllDay) {
             Date date = parseDateString(matcher.group(2));
@@ -248,7 +288,7 @@ public class CalendarControllerImpl implements IController {
         boolean isSeries = false;
 
         int baseRepeatGroupIndex = isAllDay ? 3 : 4;
-        if (matcher.group(baseRepeatGroupIndex) != null) { // repeats <weekdays>
+        if (matcher.group(baseRepeatGroupIndex) != null) {
             isSeries = true;
             weekdaysString = matcher.group(baseRepeatGroupIndex);
             if (matcher.group(baseRepeatGroupIndex + 1) != null) {
@@ -302,10 +342,13 @@ public class CalendarControllerImpl implements IController {
 
         if (success) {
             view.displayMessage("Event(s) created successfully.");
-        } else {
         }
     }
 
+    /**
+     * Handles the 'edit' command for modifying existing events.
+     * @param command the full edit command string
+     */
     private void handleEditCommand(String command) {
         Pattern editPattern = Pattern.compile(
             "edit (event|events|series) (subject|start|end|description|location|status) (\"[^\"]+\"|[^\\s]+) from (\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2})(?: to (\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}))? with (.*)", Pattern.CASE_INSENSITIVE);
@@ -320,10 +363,9 @@ public class CalendarControllerImpl implements IController {
         String property = matcher.group(2).toLowerCase();
         String findSubject = extractSubject(matcher.group(3));
         DateTime findStartDateTime = parseDateTimeString(matcher.group(4));
-        DateTime findEndDateTime = null; // Only for "edit event" (scope "this")
+        DateTime findEndDateTime = null;
         String capturedNewValuePart = matcher.group(6).trim();
         String newValueRaw = capturedNewValuePart.split("#", 2)[0].trim();
-
 
         String scope;
         if (scopeKey.equals("event")) {
@@ -334,13 +376,13 @@ public class CalendarControllerImpl implements IController {
             }
             findEndDateTime = parseDateTimeString(matcher.group(5));
         } else if (scopeKey.equals("events")) {
-            scope = "future"; // "this and all future instances"
+            scope = "future";
             if (matcher.group(5) != null) {
                 view.displayError("For 'edit events' (this and future), 'to <endDateTtimeString>' should not be specified for identification. Use only subject and start time.");
                 return;
             }
         } else if (scopeKey.equals("series")) {
-            scope = "all"; // "all instances in the series"
+            scope = "all";
             if (matcher.group(5) != null) {
                 view.displayError("For 'edit series' (all instances), 'to <endDateTtimeString>' should not be specified for identification. Use only subject and start time.");
                 return;
@@ -367,7 +409,7 @@ public class CalendarControllerImpl implements IController {
                 break;
             case "start":
             case "end":
-                parsedNewValue = parseDateTimeString(extractQuotedValue(newValueRaw)); // Value might be quoted if it contains spaces, though unlikely for DateTime
+                parsedNewValue = parseDateTimeString(extractQuotedValue(newValueRaw));
                 break;
             default:
                 view.displayError("Internal error: Unrecognized property to edit: " + property);
@@ -377,10 +419,13 @@ public class CalendarControllerImpl implements IController {
         boolean success = model.editEvent(findSubject, findStartDateTime, findEndDateTime, property, parsedNewValue, scope);
         if (success) {
             view.displayMessage("Event(s) edited successfully.");
-        } else {
         }
     }
 
+    /**
+     * Handles the 'print' command for displaying events on a date or within a range.
+     * @param command the full print command string
+     */
     private void handlePrintCommand(String command) {
         Pattern printOnDatePattern = Pattern.compile("print events on (\\d{4}-\\d{2}-\\d{2})", Pattern.CASE_INSENSITIVE);
         Pattern printRangePattern = Pattern.compile("print events from (\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}) to (\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2})", Pattern.CASE_INSENSITIVE);
@@ -407,6 +452,10 @@ public class CalendarControllerImpl implements IController {
         }
     }
 
+    /**
+     * Handles the 'show' command for displaying status information.
+     * @param command the full show command string
+     */
     private void handleShowCommand(String command) {
         Pattern showStatusPattern = Pattern.compile("show status on (\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2})", Pattern.CASE_INSENSITIVE);
         Matcher matcher = showStatusPattern.matcher(command);

@@ -1,27 +1,37 @@
 package calendar;
 
-import java.util.ArrayList; // Keep if daysOfWeek is used
-import java.time.DayOfWeek; // Keep if daysOfWeek is used, though not in IEvent yet
+import java.util.ArrayList;
+import java.time.DayOfWeek;
 
-// Your Event class, adapted to implement IEvent
+/**
+ * Implementation of the IEvent interface representing a calendar event.
+ * This class handles both single events and events that are part of a series.
+ */
 public class Event implements IEvent {
   private String subject;
   private String location;
   private DateTime start;
   private DateTime end;
-  private String statusValue; // Using String for status ("public", "private") as per IEvent and main reqs
+  private String statusValue;
   private String description;
   
-  // For series handling, from my previous Event.java and IEvent
   private String seriesId;
   private boolean isSeriesException;
-  private String originalSeriesId; // Added for Phase 3
+  private String originalSeriesId;
   
-  // Your original fields - isSeries and daysOfWeek might be used by EventSeries logic later
-  private boolean isSeriesFlag; // Renamed to avoid conflict if 'isSeries' method is added
-  private ArrayList<DayOfWeek> daysOfWeekList; // Renamed
+  private boolean isSeriesFlag;
+  private ArrayList<DayOfWeek> daysOfWeekList;
 
-  // Constructor matching your original Event.java structure
+  /**
+   * Constructs a new Event with the specified parameters.
+   * @param subject the event subject
+   * @param location the event location
+   * @param start the start date and time (required)
+   * @param end the end date and time (can be null for all-day events)
+   * @param status the event status ("public" or "private")
+   * @param description the event description
+   * @throws IllegalArgumentException if start is null
+   */
   public Event(String subject, String location, DateTime start, DateTime end, String status, String description) {
     if (start == null) {
         throw new IllegalArgumentException("Start DateTime cannot be null.");
@@ -29,78 +39,121 @@ public class Event implements IEvent {
     this.subject = subject;
     this.location = location;
     this.start = start;
-    this.end = end; // Can be null for all-day events initially
-    this.statusValue = status != null ? status : "public"; // Default to public
+    this.end = end;
+    this.statusValue = status != null ? status : "public";
     this.description = description;
-    this.isSeriesException = false; // Default
-    this.originalSeriesId = null; // Default
-    this.isSeriesFlag = false; // Default
-    this.daysOfWeekList = new ArrayList<>(); // Initialize
+    this.isSeriesException = false;
+    this.originalSeriesId = null;
+    this.isSeriesFlag = false;
+    this.daysOfWeekList = new ArrayList<>();
   }
 
-  // Constructor for all-day events (simplified, assuming EventBuilder handles defaults)
+  /**
+   * Constructs a new all-day Event with default values.
+   * @param subject the event subject
+   * @param start the start date and time
+   */
   public Event(String subject, DateTime start) {
       this(subject, "No Location Provided", start, null, "public", "No Description Provided");
-      // For all-day, end might be set to start date + 8-5pm by model/builder logic
   }
 
-
+  /**
+   * Gets the event subject.
+   * @return the event subject
+   */
   @Override
   public String getSubject() {
     return subject;
   }
 
+  /**
+   * Sets the event subject.
+   * @param newSubject the new subject
+   */
   @Override
   public void setSubject(String newSubject) {
     this.subject = newSubject;
   }
 
+  /**
+   * Gets the event location.
+   * @return the event location
+   */
   @Override
   public String getLocation() {
     return location;
   }
 
+  /**
+   * Sets the event location.
+   * @param newLocation the new location
+   */
   @Override
   public void setLocation(String newLocation) {
     this.location = newLocation;
   }
 
+  /**
+   * Gets the event start date and time.
+   * @return the start DateTime
+   */
   @Override
   public DateTime getStart() {
     return start;
   }
 
+  /**
+   * Sets the event start date and time.
+   * @param newStart the new start DateTime
+   * @throws IllegalArgumentException if newStart is null or after the end time
+   */
   @Override
   public void setStart(DateTime newStart) {
     if (newStart == null) {
         throw new IllegalArgumentException("Start DateTime cannot be null.");
     }
-    // Add validation: start must not be after end if end is not null
     if (this.end != null && newStart.isAfter(this.end)) {
         throw new IllegalArgumentException("Start DateTime cannot be after End DateTime.");
     }
     this.start = newStart;
   }
 
+  /**
+   * Gets the event end date and time.
+   * @return the end DateTime, or null for all-day events
+   */
   @Override
   public DateTime getEnd() {
     return end;
   }
 
+  /**
+   * Sets the event end date and time.
+   * @param newEnd the new end DateTime
+   * @throws IllegalArgumentException if newEnd is before the start time
+   */
   @Override
   public void setEnd(DateTime newEnd) {
-    // Add validation: end must not be before start if newEnd is not null
     if (newEnd != null && newEnd.isBefore(this.start)) {
         throw new IllegalArgumentException("End DateTime cannot be before Start DateTime.");
     }
     this.end = newEnd;
   }
 
+  /**
+   * Gets the event status.
+   * @return the event status ("public" or "private")
+   */
   @Override
   public String getStatus() {
     return statusValue;
   }
 
+  /**
+   * Sets the event status.
+   * @param newStatus the new status ("public" or "private")
+   * @throws IllegalArgumentException if status is not "public" or "private"
+   */
   @Override
   public void setStatus(String newStatus) {
     if (newStatus != null && (newStatus.equalsIgnoreCase("public") || newStatus.equalsIgnoreCase("private"))) {
@@ -110,70 +163,120 @@ public class Event implements IEvent {
     }
   }
 
+  /**
+   * Gets the event description.
+   * @return the event description
+   */
   @Override
   public String getDescription() {
     return description;
   }
 
+  /**
+   * Sets the event description.
+   * @param newDescription the new description
+   */
   @Override
   public void setDescription(String newDescription) {
     this.description = newDescription;
   }
 
-  // Series-related methods from IEvent
+  /**
+   * Gets the series ID if this event is part of a series.
+   * @return the series ID, or null if not part of a series
+   */
   @Override
   public String getSeriesId() {
     return seriesId;
   }
 
+  /**
+   * Sets the series ID for this event.
+   * @param seriesId the series ID
+   */
   @Override
   public void setSeriesId(String seriesId) {
     this.seriesId = seriesId;
   }
 
+  /**
+   * Checks if this event is an exception within a series.
+   * @return true if this is a series exception, false otherwise
+   */
   @Override
   public boolean isSeriesException() {
     return isSeriesException;
   }
 
+  /**
+   * Sets whether this event is an exception within a series.
+   * @param seriesException true if this is a series exception
+   */
   @Override
   public void setSeriesException(boolean seriesException) {
     isSeriesException = seriesException;
   }
 
+  /**
+   * Gets the original series ID before any modifications.
+   * @return the original series ID
+   */
   @Override
   public String getOriginalSeriesId() {
     return originalSeriesId;
   }
 
+  /**
+   * Sets the original series ID before any modifications.
+   * @param originalSeriesId the original series ID
+   */
   @Override
   public void setOriginalSeriesId(String originalSeriesId) {
     this.originalSeriesId = originalSeriesId;
   }
 
-  // Your original isSeries/daysOfWeek related fields/methods (getters/setters if needed)
-  public boolean getIsSeriesFlag() { // Using your naming convention
+  /**
+   * Gets whether this event is flagged as part of a series.
+   * @return true if this event is part of a series
+   */
+  public boolean getIsSeriesFlag() {
       return isSeriesFlag;
   }
 
+  /**
+   * Sets whether this event is flagged as part of a series.
+   * @param isSeriesFlag true if this event is part of a series
+   */
   public void setIsSeriesFlag(boolean isSeriesFlag) {
       this.isSeriesFlag = isSeriesFlag;
   }
 
-  public ArrayList<DayOfWeek> getDaysOfWeekList() { // Using your naming convention
+  /**
+   * Gets the list of days of the week for recurring events.
+   * @return the list of days of the week
+   */
+  public ArrayList<DayOfWeek> getDaysOfWeekList() {
       return daysOfWeekList;
   }
 
+  /**
+   * Sets the list of days of the week for recurring events.
+   * @param daysOfWeekList the list of days of the week
+   */
   public void setDaysOfWeekList(ArrayList<DayOfWeek> daysOfWeekList) {
       this.daysOfWeekList = daysOfWeekList;
   }
   
+  /**
+   * Creates a deep copy of this event.
+   * @return a new Event instance that is a copy of this event
+   */
   @Override
   public IEvent copy() {
       Event newEvent = new Event(this.subject, this.location, this.start, this.end, this.statusValue, this.description);
       newEvent.setSeriesId(this.seriesId);
       newEvent.setSeriesException(this.isSeriesException);
-      newEvent.setOriginalSeriesId(this.originalSeriesId); // Added for Phase 3
+      newEvent.setOriginalSeriesId(this.originalSeriesId);
       newEvent.setIsSeriesFlag(this.isSeriesFlag);
       if (this.daysOfWeekList != null) {
         newEvent.setDaysOfWeekList(new ArrayList<>(this.daysOfWeekList));
@@ -181,71 +284,40 @@ public class Event implements IEvent {
       return newEvent;
   }
 
-  // Your match method - needs adjustment as startDate and startTime are now in DateTime 'start'
-  // This method is crucial for your edit logic.
+  /**
+   * Checks if this event matches the specified subject, date, and time.
+   * @param subject the subject to match
+   * @param date the date to match
+   * @param time the time to match
+   * @return true if this event matches the criteria
+   */
   public boolean match(String subject, Date date, Time time) {
     if (this.start == null) return false;
     return this.subject.equals(subject)
-            && this.start.getDate().equals(date) // Assuming Date has a proper equals method
-            && this.start.getTime().equals(time); // Assuming Time has a proper equals method
+            && this.start.getDate().equals(date)
+            && this.start.getTime().equals(time);
   }
 
-  // Your original applyEdit method is problematic because it takes String... value
-  // and tries to parse them. This is not type-safe and error-prone.
-  // The IEvent interface promotes type-safe setters, which should be used instead.
-  // I will comment out your applyEdit and parseDate/parseTime as they are superseded by direct setters
-  // and the controller should handle parsing strings to Date/Time objects.
-
-  /*
-  public void applyEdit(String property, String... value) {
-    switch (property.toLowerCase()) {
-      case "subject":
-        setSubject(value[0]);
-        break;
-      case "start":
-        setStart(new DateTime(new Date(Integer.parseInt(value[0]), Integer.parseInt(value[1]), Integer.parseInt(value[2])), new Time(Integer.parseInt(value[3]), Integer.parseInt(value[4]))));
-        break;
-      case "end":
-        setEnd(new DateTime(new Date(Integer.parseInt(value[0]), Integer.parseInt(value[1]), Integer.parseInt(value[2])), new Time(Integer.parseInt(value[3]), Integer.parseInt(value[4]))));
-        break;
-      case "location":
-        // setLocation(value); // This was an error, setLocation expects a single String
-        setLocation(value[0]);
-        break;
-      case "description":
-        // setDescription(value); // This was an error, setDescription expects a single String
-        setDescription(value[0]);
-        break;
-      case "status":
-        // setStatus(value); // This was an error, setStatus expects a single String (or boolean in your original)
-        setStatus(value[0]); // Assuming status is now a string like "public" or "private"
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown property: " + property);
-    }
-  }
-
-  private Date parseDate(String dateStr) {
-    // ... your parsing logic ...
-  }
-
-  private Time parseTime(String timeStr) {
-    // ... your parsing logic ...
-  }
-  */
-
+  /**
+   * Checks if this event is equal to another object.
+   * Events are considered equal if they have the same subject, start time, and end time.
+   * @param o the object to compare with
+   * @return true if the events are equal
+   */
   @Override
   public boolean equals(Object o) {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
       Event event = (Event) o;
-      // Uniqueness based on subject, start, and end as per requirements
       return subject.equals(event.subject) &&
              start.equals(event.start) &&
-             // End can be null for all-day events, handle this.
              ( (end == null && event.end == null) || (end != null && end.equals(event.end)) );
   }
 
+  /**
+   * Returns a hash code for this event.
+   * @return the hash code based on subject, start time, and end time
+   */
   @Override
   public int hashCode() {
       int result = subject.hashCode();
@@ -254,6 +326,10 @@ public class Event implements IEvent {
       return result;
   }
 
+  /**
+   * Returns a string representation of this event.
+   * @return a detailed string representation including all event properties
+   */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -268,7 +344,7 @@ public class Event implements IEvent {
     if (description != null && !description.equals("No Description Provided")) sb.append(", description='").append(description).append('\'');
     sb.append(", status='").append(statusValue).append('\'');
     if (seriesId != null) sb.append(", seriesId='").append(seriesId).append('\'');
-    if (originalSeriesId != null) sb.append(", originalSeriesId='").append(originalSeriesId).append('\''); // Added for Phase 3
+    if (originalSeriesId != null) sb.append(", originalSeriesId='").append(originalSeriesId).append('\'');
     if (isSeriesException) sb.append(", isSeriesException=true");
     if (isSeriesFlag) {
         sb.append(", isPartOfSeries=true");

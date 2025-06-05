@@ -5,29 +5,34 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.time.DayOfWeek; // Standard DayOfWeek
+import java.time.DayOfWeek;
 
-// Assuming your Date, Time, DateTime, Event (as IEvent) are in this package.
-
+/**
+ * Implementation of the ICalendarModel interface that manages calendar events.
+ * This class handles creating, editing, and querying calendar events and event series.
+ */
 public class CalendarModelImpl implements ICalendarModel {
     private List<IEvent> events;
-    // EST timezone is an application-level requirement, not strictly a model one,
-    // but date/time comparisons need to be consistent. Your custom Date/Time
-    // don't have timezone info, so comparisons are direct. My previous ZoneId logic
-    // is not directly applicable here unless we convert your DateTime to java.time.ZonedDateTime.
-    // For now, all operations will assume inputs are already in EST as per problem statement.
 
+    /**
+     * Constructs a new CalendarModelImpl with an empty list of events.
+     */
     public CalendarModelImpl() {
         this.events = new ArrayList<>();
     }
 
+    /**
+     * Checks if an event would be a duplicate of an existing event.
+     * Events are considered duplicates if they have the same subject, start date/time, and end date/time.
+     * @param eventToCheck the event to check for duplication
+     * @param eventToExclude an event to exclude from the duplicate check (can be null)
+     * @return true if the event is a duplicate, false otherwise
+     */
     private boolean isDuplicate(IEvent eventToCheck, IEvent eventToExclude) {
         for (IEvent existingEvent : events) {
             if (existingEvent == eventToExclude) {
                 continue;
             }
-            // Uniqueness: subject, start date/time, and end date/time.
-            // IEvent.equals() should implement this.
             if (existingEvent.getSubject().equals(eventToCheck.getSubject()) &&
                 existingEvent.getStart().equals(eventToCheck.getStart()) &&
                 Objects.equals(existingEvent.getEnd(), eventToCheck.getEnd())) {
@@ -37,6 +42,16 @@ public class CalendarModelImpl implements ICalendarModel {
         return false;
     }
 
+    /**
+     * Creates a single calendar event.
+     * @param subject the event subject (required)
+     * @param startDateTime the start date and time (required)
+     * @param endDateTime the end date and time (null for all-day events)
+     * @param description the event description (can be null)
+     * @param location the event location (can be null)
+     * @param status the event status ("public" or "private")
+     * @return true if the event was created successfully, false otherwise
+     */
     @Override
     public boolean createEvent(String subject, DateTime startDateTime, DateTime endDateTime, String description, String location, String status) {
         if (startDateTime == null || subject == null || subject.trim().isEmpty()) {
@@ -47,15 +62,12 @@ public class CalendarModelImpl implements ICalendarModel {
         DateTime effectiveStart = startDateTime;
         DateTime effectiveEnd = endDateTime;
 
-        if (effectiveEnd == null) { // All-day event
-            // As per requirements: 8:00 AM to 5:00 PM on the specified start date.
-            // Your Date and Time classes are separate.
+        if (effectiveEnd == null) {
             Date date = startDateTime.getDate();
             effectiveStart = new DateTime(date, new Time(8, 0));
             effectiveEnd = new DateTime(date, new Time(17, 0));
         }
 
-        // Validate that end is not before start
         if (effectiveEnd.isBefore(effectiveStart)) {
             System.err.println("Error: Event end time cannot be before start time.");
             return false;
@@ -72,6 +84,19 @@ public class CalendarModelImpl implements ICalendarModel {
         return true;
     }
 
+    /**
+     * Creates a series of recurring calendar events.
+     * @param subject the event subject (required)
+     * @param seriesStartDateTime the start date and time for the series (required)
+     * @param seriesEndDateTime the end date and time for each event in the series (null for all-day events)
+     * @param description the event description (can be null)
+     * @param location the event location (can be null)
+     * @param status the event status ("public" or "private")
+     * @param repeatDays the days of the week on which to repeat the event (required)
+     * @param occurrences the number of occurrences (null if using seriesEndDate)
+     * @param seriesEndDate the date after which to stop creating events (null if using occurrences)
+     * @return true if the event series was created successfully, false otherwise
+     */
     @Override
     public boolean createEventSeries(String subject, DateTime seriesStartDateTime, DateTime seriesEndDateTime,
                                      String description, String location, String status,
@@ -97,13 +122,13 @@ public class CalendarModelImpl implements ICalendarModel {
         DateTime effectiveSeriesStart = seriesStartDateTime;
         DateTime effectiveSeriesEnd = seriesEndDateTime;
 
-        if (effectiveSeriesEnd == null) { // All-day event series
+        if (effectiveSeriesEnd == null) {
             Date date = seriesStartDateTime.getDate();
             effectiveSeriesStart = new DateTime(date, new Time(8, 0));
             effectiveSeriesEnd = new DateTime(date, new Time(17, 0));
         }
         
-        if (seriesEndDate != null) { // Only check if seriesEndDate is provided
+        if (seriesEndDate != null) {
             boolean endDateIsBeforeStartDate = seriesEndDate.getYear() < effectiveSeriesStart.getDate().getYear() ||
                (seriesEndDate.getYear() == effectiveSeriesStart.getDate().getYear() && seriesEndDate.getMonth() < effectiveSeriesStart.getDate().getMonth()) ||
                (seriesEndDate.getYear() == effectiveSeriesStart.getDate().getYear() && seriesEndDate.getMonth() == effectiveSeriesStart.getDate().getMonth() && seriesEndDate.getDay() < effectiveSeriesStart.getDate().getDay());
@@ -113,29 +138,24 @@ public class CalendarModelImpl implements ICalendarModel {
             }
         }
 
-
-        // Constraint: Each individual event occurrence within a series must start and finish on the same calendar day.
         if (effectiveSeriesStart.getDate().getYear() != effectiveSeriesEnd.getDate().getYear() ||
             effectiveSeriesStart.getDate().getMonth() != effectiveSeriesEnd.getDate().getMonth() ||
             effectiveSeriesStart.getDate().getDay() != effectiveSeriesEnd.getDate().getDay()) {
             System.err.println("Error: For recurring events, the start and end time must be on the same day.");
             return false;
         }
-        
-        // Constraint: All event occurrences within the same series must have the same start time and the same duration.
-        // This is implicitly handled by using the start/end times of the first event for all instances.
 
         List<IEvent> potentialSeriesEvents = new ArrayList<>();
-        Date currentDate = new Date(effectiveSeriesStart.getDate().getDay(), effectiveSeriesStart.getDate().getMonth(), effectiveSeriesStart.getDate().getYear()); // Use a mutable copy
+        Date currentDate = new Date(effectiveSeriesStart.getDate().getDay(), effectiveSeriesStart.getDate().getMonth(), effectiveSeriesStart.getDate().getYear());
         int eventsCreated = 0;
         String generatedSeriesId = UUID.randomUUID().toString();
 
         Time startTime = effectiveSeriesStart.getTime();
         Time endTime = effectiveSeriesEnd.getTime();
 
-        int safetyBreak = 0; // To prevent infinite loops with bad date logic
+        int safetyBreak = 0;
 
-        while (safetyBreak++ < (366 * 5)) { // Max 5 years of daily events
+        while (safetyBreak++ < (366 * 5)) {
             if (occurrences != null && eventsCreated >= occurrences) {
                 break;
             }
@@ -146,9 +166,6 @@ public class CalendarModelImpl implements ICalendarModel {
                 break;
             }
 
-            // Convert your Date's day of week to java.time.DayOfWeek
-            // This requires a mapping or using java.time.LocalDate internally for this check.
-            // For simplicity, let's assume a helper method or direct java.time.LocalDate conversion here.
             java.time.LocalDate tempLocalDate = java.time.LocalDate.of(currentDate.getYear(), currentDate.getMonth(), currentDate.getDay());
             if (repeatDays.contains(tempLocalDate.getDayOfWeek())) {
                 DateTime eventStartDt = new DateTime(new Date(currentDate.getDay(), currentDate.getMonth(), currentDate.getYear()), startTime);
@@ -156,13 +173,11 @@ public class CalendarModelImpl implements ICalendarModel {
                 
                 IEvent seriesInstance = new Event(subject, location, eventStartDt, eventEndDt, status, description);
                 seriesInstance.setSeriesId(generatedSeriesId);
-                seriesInstance.setOriginalSeriesId(generatedSeriesId); // Initialize originalSeriesId
-                // Set series flag and days for the instance if your Event class supports it
-                if (seriesInstance instanceof Event) { // Check if it's your concrete Event
+                seriesInstance.setOriginalSeriesId(generatedSeriesId);
+                if (seriesInstance instanceof Event) {
                     ((Event) seriesInstance).setIsSeriesFlag(true);
-                    ((Event) seriesInstance).setDaysOfWeekList(new ArrayList<>(repeatDays)); // Store repeating days
+                    ((Event) seriesInstance).setDaysOfWeekList(new ArrayList<>(repeatDays));
                 }
-
 
                 boolean conflict = false;
                 if (isDuplicate(seriesInstance, null)) {
@@ -187,14 +202,13 @@ public class CalendarModelImpl implements ICalendarModel {
                 potentialSeriesEvents.add(seriesInstance);
                 eventsCreated++;
             }
-            currentDate.advance(1); // Use your Date's advance method
+            currentDate.advance(1);
         }
         
         if (safetyBreak >= (366*5) && (occurrences == null || eventsCreated < occurrences) && seriesEndDate == null) {
             System.err.println("Error: Series generation exceeded safety limit. Please specify occurrences or a valid end date.");
             return false;
         }
-
 
         if (potentialSeriesEvents.isEmpty() && (occurrences != null && occurrences > 0 || seriesEndDate != null)) {
             System.err.println("Warning: No events were generated for the series based on the criteria.");
@@ -204,15 +218,24 @@ public class CalendarModelImpl implements ICalendarModel {
         return true;
     }
     
+    /**
+     * Edits an existing event or series of events.
+     * @param findSubject the subject of the event to find
+     * @param findStartDateTime the start date/time of the event to find
+     * @param findEndDateTime the end date/time of the event to find (required for "this" scope)
+     * @param propertyToChange the property to modify (subject, start, end, description, location, status)
+     * @param newValue the new value for the property
+     * @param scope the scope of the edit ("this", "future", or "all")
+     * @return true if the edit was successful, false otherwise
+     */
     @Override
     public boolean editEvent(String findSubject, DateTime findStartDateTime, DateTime findEndDateTime,
                              String propertyToChange, Object newValue, String scope) {
         List<IEvent> targetEvents = new ArrayList<>();
         IEvent anchorEvent = null;
 
-        // 1. Find the event(s) to edit
         if ("this".equals(scope)) {
-            if (findEndDateTime == null && findStartDateTime != null) { // All-day event identification
+            if (findEndDateTime == null && findStartDateTime != null) {
                  Date date = findStartDateTime.getDate();
                  findStartDateTime = new DateTime(date, new Time(8,0));
                  findEndDateTime = new DateTime(date, new Time(17,0));
@@ -228,12 +251,12 @@ public class CalendarModelImpl implements ICalendarModel {
                 System.err.println("Error: No event found matching subject '" + findSubject + "', start '" + findStartDateTime + "', and end '" + findEndDateTime + "'.");
                 return false;
             }
-            if (targetEvents.size() > 1) { // Should be unique
+            if (targetEvents.size() > 1) {
                 System.err.println("Error: Multiple events found for 'edit event' (this scope). This indicates a data integrity issue or overly broad match.");
                 return false;
             }
             anchorEvent = targetEvents.get(0);
-        } else { // "future" (events) or "all" (series)
+        } else {
             List<IEvent> candidates = new ArrayList<>();
             for (IEvent event : events) {
                 if (event.getSubject().equals(findSubject) && event.getStart().equals(findStartDateTime)) {
@@ -244,13 +267,11 @@ public class CalendarModelImpl implements ICalendarModel {
                 System.err.println("Error: No event found matching subject '" + findSubject + "' and start time '" + findStartDateTime + "'.");
                 return false;
             }
-            // Simplified: pick first candidate as anchor. Robust solution might need user input for ambiguity.
             anchorEvent = candidates.get(0);
             
             if (candidates.size() > 1) {
-                // Check if all candidates share the same non-null seriesId. If not, it's ambiguous.
                 String firstSeriesId = anchorEvent.getSeriesId();
-                if (firstSeriesId == null) { // Anchor is not a series event, but multiple matches found
+                if (firstSeriesId == null) {
                      System.err.println("Error: Ambiguous edit. Multiple non-series events match subject '" + findSubject + "' and start time '" + findStartDateTime + "'.");
                      return false;
                 }
@@ -262,41 +283,32 @@ public class CalendarModelImpl implements ICalendarModel {
                 }
             }
 
-            if ("future".equals(scope)) { // This and future
+            if ("future".equals(scope)) {
                 if (anchorEvent.getSeriesId() != null) {
                     if (anchorEvent.isSeriesException()) {
-                        // If the anchor event itself is an exception, "this and future" only applies to this one instance.
                         targetEvents.add(anchorEvent);
                     } else {
-                        // If anchor is not an exception, target it and all future non-exception instances of the same series.
                         for (IEvent event : events) {
                             if (anchorEvent.getSeriesId().equals(event.getSeriesId()) &&
                                 !event.getStart().isBefore(anchorEvent.getStart()) &&
-                                !event.isSeriesException()) { // Only target non-exceptions for propagation
+                                !event.isSeriesException()) {
                                 targetEvents.add(event);
                             }
                         }
                     }
-                } else { // Anchor is a single, non-series event
+                } else {
                     targetEvents.add(anchorEvent);
                 }
-            } else if ("all".equals(scope)) { // All in series
-                String seriesIdToMatch = anchorEvent.getSeriesId(); // Target based on the anchor's CURRENT series ID.
+            } else if ("all".equals(scope)) {
+                String seriesIdToMatch = anchorEvent.getSeriesId();
                 if (seriesIdToMatch != null) {
                     for (IEvent event : events) {
-                        // Only add events that are currently part of this exact series.
-                        // Do not include events that may have originated from it but now have a different seriesId.
                         if (seriesIdToMatch.equals(event.getSeriesId())) {
-                            // For "all" scope, we typically want to modify all instances, including those
-                            // that might have been marked as exceptions if the intent is to override those exceptions.
-                            // However, the prompt implies "all in series" should respect prior splits.
-                            // The critical part is that "Second" events have a *different* seriesId than "First".
-                            // So, if anchor is "First" (seriesId S1), this will only get S1 events.
                             targetEvents.add(event);
                         }
                     }
-                } else { // Anchor is a single, non-series event
-                    targetEvents.add(anchorEvent); // Only target the anchor itself
+                } else {
+                    targetEvents.add(anchorEvent);
                 }
             }
         }
@@ -309,22 +321,18 @@ public class CalendarModelImpl implements ICalendarModel {
         List<IEvent> eventsToRemove = new ArrayList<>();
         List<IEvent> eventsToAdd = new ArrayList<>();
         boolean startPropertyChanged = propertyToChange.equalsIgnoreCase("start");
-        String newSeriesIdForSplit = null; // For "all" scope start changes, or "this" scope start changes on series
-        String newSeriesIdForFutureScope = null; // For "future" scope edits on a series
+        String newSeriesIdForSplit = null;
+        String newSeriesIdForFutureScope = null;
 
         if (scope.equals("future") && anchorEvent != null && anchorEvent.getSeriesId() != null && !targetEvents.isEmpty()) {
             newSeriesIdForFutureScope = UUID.randomUUID().toString();
         } else if (startPropertyChanged && anchorEvent != null && anchorEvent.getSeriesId() != null && scope.equals("all") && !targetEvents.isEmpty()) {
-            // If start time of an entire series ("all" scope) is changed, these events form a new series.
             newSeriesIdForSplit = UUID.randomUUID().toString();
         }
-        // Note: "this" scope changing start time on a series event makes it an exception, but doesn't usually create a new series ID for just one event.
-        // The existing logic for "this" scope setting isSeriesException(true) handles this.
 
         for (IEvent originalEvent : targetEvents) {
-            IEvent eventToModify = originalEvent.copy(); // Always work on a copy for modifications
+            IEvent eventToModify = originalEvent.copy();
 
-            // Apply the actual property change
             switch (propertyToChange.toLowerCase()) {
                 case "subject": eventToModify.setSubject((String) newValue); break;
                 case "start": eventToModify.setStart((DateTime) newValue); break;
@@ -335,76 +343,66 @@ public class CalendarModelImpl implements ICalendarModel {
                 default: System.err.println("Error: Unknown property to change: " + propertyToChange); return false;
             }
 
-            // Handle series logic for the modified copy
             String currentOriginalId = originalEvent.getOriginalSeriesId();
             String currentSeriesId = originalEvent.getSeriesId();
 
-            // Preserve original series ID by default if it exists, otherwise use current series ID as original
             eventToModify.setOriginalSeriesId(currentOriginalId != null ? currentOriginalId : currentSeriesId);
 
             if (scope.equals("future") && newSeriesIdForFutureScope != null) {
-                // "future" scope edit on a series: these events form a new current series.
-                // Their originalSeriesId should point to the seriesId they are branching from.
-                eventToModify.setOriginalSeriesId(originalEvent.getSeriesId()); // The series they are leaving
+                eventToModify.setOriginalSeriesId(originalEvent.getSeriesId());
                 eventToModify.setSeriesId(newSeriesIdForFutureScope);
                 eventToModify.setSeriesException(false);
             } else if (scope.equals("all")) {
-                String masterSeriesIdForAnchor = anchorEvent.getSeriesId(); // The series we are intending to edit "all" of
+                String masterSeriesIdForAnchor = anchorEvent.getSeriesId();
                 if (startPropertyChanged && newSeriesIdForSplit != null) {
-                    // "all" scope AND start time changed: all targeted events form a new current series.
-                    // Their originalSeriesId should be the ID of the series they are splitting from.
                     eventToModify.setOriginalSeriesId(masterSeriesIdForAnchor);
                     eventToModify.setSeriesId(newSeriesIdForSplit);
                     eventToModify.setSeriesException(false);
                 } else if (!startPropertyChanged && masterSeriesIdForAnchor != null) {
-                    // "all" scope, and NOT changing start time: re-align event with the master series.
                     eventToModify.setSeriesId(masterSeriesIdForAnchor);
-                    // If the event had a different originalSeriesId, it means it was an exception from an even older series.
-                    // For an "all" edit, we are re-aligning it fully to the masterSeriesIdForAnchor.
                     eventToModify.setOriginalSeriesId(masterSeriesIdForAnchor);
                     eventToModify.setSeriesException(false);
                 }
-                // If masterSeriesIdForAnchor is null (anchor was not a series event), no series changes for "all".
             } else if (scope.equals("this")) {
-                // "this" scope: this instance becomes an exception.
-                eventToModify.setSeriesId(originalEvent.getSeriesId()); // Keep current series ID
-                // OriginalSeriesId is already set from originalEvent at the start of this block.
+                eventToModify.setSeriesId(originalEvent.getSeriesId());
                 eventToModify.setSeriesException(true);
             }
-            // If originalEvent had no series affiliation (seriesId was null), eventToModify also won't,
-            // unless a new one is assigned by "future" or "all" (start changed) scopes.
-
 
             if (isDuplicate(eventToModify, originalEvent)) {
                 System.err.println("Error: Modified event (" + eventToModify.getSubject() + " at " + eventToModify.getStart() + ") conflicts with an existing event.");
-                return false; // Fail the whole operation
+                return false;
             }
             
             eventsToRemove.add(originalEvent);
             eventsToAdd.add(eventToModify);
         }
 
-        // Commit changes
         this.events.removeAll(eventsToRemove);
         this.events.addAll(eventsToAdd);
         return true;
     }
 
-
+    /**
+     * Returns all events in the calendar.
+     * @return a copy of the list of all events
+     */
     @Override
     public List<IEvent> getAllEvents() {
-        return new ArrayList<>(events); // Return a copy
+        return new ArrayList<>(events);
     }
 
+    /**
+     * Returns all events that occur on a specific date.
+     * @param date the date to search for events
+     * @return a list of events that occur on the specified date
+     */
     @Override
     public List<IEvent> getEventsOnDate(Date date) {
         List<IEvent> result = new ArrayList<>();
         for (IEvent event : events) {
             DateTime start = event.getStart();
-            DateTime end = event.getEnd() != null ? event.getEnd() : new DateTime(start.getDate(), new Time(17,0)); // Assume 5PM end for all-day if end is null
+            DateTime end = event.getEnd() != null ? event.getEnd() : new DateTime(start.getDate(), new Time(17,0));
 
-            // Event is on 'date' if:
-            // event.start.date <= date <= event.end.date
             boolean startsBeforeOrOn = start.getDate().getYear() < date.getYear() ||
                                      (start.getDate().getYear() == date.getYear() && start.getDate().getMonth() < date.getMonth()) ||
                                      (start.getDate().getYear() == date.getYear() && start.getDate().getMonth() == date.getMonth() && start.getDate().getDay() <= date.getDay());
@@ -414,11 +412,9 @@ public class CalendarModelImpl implements ICalendarModel {
                                    (end.getDate().getYear() == date.getYear() && end.getDate().getMonth() == date.getMonth() && end.getDate().getDay() >= date.getDay());
             
             if (startsBeforeOrOn && endsAfterOrOn) {
-                 // More precise check: if event spans multiple days, it's on 'date' if 'date' is between event.start.date and event.end.date (inclusive)
                 if ( (start.getDate().getYear() < date.getYear() || (start.getDate().getYear() == date.getYear() && (start.getDate().getMonth() < date.getMonth() || (start.getDate().getMonth() == date.getMonth() && start.getDate().getDay() <= date.getDay())))) &&
                      (end.getDate().getYear() > date.getYear() || (end.getDate().getYear() == date.getYear() && (end.getDate().getMonth() > date.getMonth() || (end.getDate().getMonth() == date.getMonth() && end.getDate().getDay() >= date.getDay())))) )
                 {
-                     // Check if the specific date 'date' falls within the event's date span
                     boolean dateIsAfterOrSameAsStart = date.getYear() > start.getDate().getYear() ||
                         (date.getYear() == start.getDate().getYear() && (date.getMonth() > start.getDate().getMonth() ||
                         (date.getMonth() == start.getDate().getMonth() && date.getDay() >= start.getDate().getDay())));
@@ -436,16 +432,19 @@ public class CalendarModelImpl implements ICalendarModel {
         return result;
     }
 
-
+    /**
+     * Returns all events that occur within a specified date-time range.
+     * @param startRange the start of the range (inclusive)
+     * @param endRange the end of the range (exclusive)
+     * @return a list of events that overlap with the specified range
+     */
     @Override
     public List<IEvent> getEventsInRange(DateTime startRange, DateTime endRange) {
         List<IEvent> result = new ArrayList<>();
         for (IEvent event : events) {
             DateTime eventStart = event.getStart();
-            DateTime eventEnd = event.getEnd() != null ? event.getEnd() : new DateTime(eventStart.getDate(), new Time(17,0)); // Handle all-day
+            DateTime eventEnd = event.getEnd() != null ? event.getEnd() : new DateTime(eventStart.getDate(), new Time(17,0));
 
-            // Event overlaps with range if:
-            // eventStart is before endRange AND eventEnd is after startRange
             if (eventStart.isBefore(endRange) && eventEnd.isAfter(startRange)) {
                 result.add(event);
             }
@@ -453,13 +452,17 @@ public class CalendarModelImpl implements ICalendarModel {
         return result;
     }
 
+    /**
+     * Checks if the calendar has any events at the specified date and time.
+     * @param dateTime the date and time to check
+     * @return true if there is an event at the specified time, false otherwise
+     */
     @Override
     public boolean isBusyAt(DateTime dateTime) {
         for (IEvent event : events) {
             DateTime eventStart = event.getStart();
-            DateTime eventEnd = event.getEnd() != null ? event.getEnd() : new DateTime(eventStart.getDate(), new Time(17,0)); // Handle all-day
+            DateTime eventEnd = event.getEnd() != null ? event.getEnd() : new DateTime(eventStart.getDate(), new Time(17,0));
 
-            // dateTime is on or after eventStart AND dateTime is before eventEnd
             if (!dateTime.isBefore(eventStart) && dateTime.isBefore(eventEnd)) {
                 return true;
             }

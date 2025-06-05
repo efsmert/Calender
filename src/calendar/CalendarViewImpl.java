@@ -2,63 +2,68 @@ package calendar;
 
 import java.util.List;
 import java.util.Scanner;
-// No java.time.format.DateTimeFormatter needed if using your DateTime.toString() directly.
-// However, for specific formatting like only time (HH:mm), we might need to access Time object's parts.
 
+/**
+ * Implementation of the ICalendarView interface that handles user interaction through console I/O.
+ * This class provides methods to display information to the user and get input from the user.
+ */
 public class CalendarViewImpl implements ICalendarView {
     private Scanner scanner;
 
-    // Using your DateTime.toString() which is YYYY-MM-DDTHH:mm
-    // Your Time.toString() is HH:mm
-    // Your Date.toString() is YYYY-MM-DD
-
+    /**
+     * Constructs a new CalendarViewImpl with a Scanner for user input.
+     */
     public CalendarViewImpl() {
         this.scanner = new Scanner(System.in);
     }
 
+    /**
+     * Prompts the user for a command and returns their input.
+     * @return the command string entered by the user
+     */
     @Override
     public String getCommand() {
         System.out.print("> ");
         return scanner.nextLine();
     }
 
+    /**
+     * Displays a message to the user.
+     * @param message the message to display
+     */
     @Override
     public void displayMessage(String message) {
         System.out.println(message);
     }
 
+    /**
+     * Displays an error message to the user.
+     * @param errorMessage the error message to display
+     */
     @Override
     public void displayError(String errorMessage) {
-        // The requirements asked for error messages to be printed.
-        // My previous controller also called view.displayError.
-        // The model also prints some errors to System.err. This is fine.
         System.err.println("Error: " + errorMessage);
     }
 
+    /**
+     * Displays a list of events in a formatted bulleted list.
+     * Shows subject, start date/time, end date/time, and location (if available).
+     * @param events the list of events to display
+     */
     @Override
     public void displayEvents(List<IEvent> events) {
         if (events == null || events.isEmpty()) {
             displayMessage("No events found.");
             return;
         }
-        // "Prints a bulleted list of all events within the given interval, 
-        // including their subject, start date/time, end date/time, and location (if available)."
         for (IEvent event : events) {
             StringBuilder eventDetails = new StringBuilder();
             eventDetails.append("* Subject: ").append(event.getSubject());
-            eventDetails.append(", Start: ").append(event.getStart().toString()); // Uses your DateTime.toString()
+            eventDetails.append(", Start: ").append(event.getStart().toString());
 
             if (event.getEnd() != null) {
                 eventDetails.append(", End: ").append(event.getEnd().toString());
             } else {
-                // All-day event (8am-5pm on start date)
-                // Model ensures all-day events have start 8am, end 5pm if created via 'on <dateString>'
-                // If event.getEnd() is null here, it means it was created as all-day and model might not have set explicit end.
-                // Or, it's an event where end time is genuinely not set.
-                // The requirement for "print events from X to Y" implies full date/time.
-                // Let's assume if getEnd() is null, it's an all-day event for that start date.
-                // The model should ideally set the 8-5 times for all-day events.
-                // If model sets end time for all-day, this 'else' might not be hit often.
                 eventDetails.append(", End: (All-day on ").append(event.getStart().getDate().toString()).append(")");
             }
 
@@ -69,6 +74,12 @@ public class CalendarViewImpl implements ICalendarView {
         }
     }
 
+    /**
+     * Displays a list of events scheduled for a specific date.
+     * Shows subject, start time, end time, and location (if available) for each event.
+     * @param events the list of events to display
+     * @param dateString the date string for which events are being displayed
+     */
     @Override
     public void displayEventsOnDate(List<IEvent> events, String dateString) {
         if (events == null || events.isEmpty()) {
@@ -76,39 +87,19 @@ public class CalendarViewImpl implements ICalendarView {
             return;
         }
         displayMessage("Events on " + dateString + ":");
-        // "Prints a bulleted list of all events on that day, including their subject, 
-        // start time, end time, and location (if available)."
         for (IEvent event : events) {
             StringBuilder eventDetails = new StringBuilder();
             eventDetails.append("* ").append(event.getSubject());
             
-            // Start time
-            eventDetails.append(" from ").append(event.getStart().getTime().toString()); // HH:mm
+            eventDetails.append(" from ").append(event.getStart().getTime().toString());
 
-            // End time
             if (event.getEnd() != null) {
-                // If start and end are on the same day, just show end time.
-                // Otherwise, show full end date/time (though query is for a single date).
                 if (event.getStart().getDate().equals(event.getEnd().getDate())) {
                     eventDetails.append(" to ").append(event.getEnd().getTime().toString());
                 } else {
-                    // This case should ideally not happen if query is for a single date and event spans it.
-                    // But if an event ENDS on this day but started earlier, show full end.
-                    // Or if it STARTS on this day and ends later.
-                    // For "print events on <date>", it's simpler to assume we only care about times on *that* day.
-                    // The model's getEventsOnDate should filter appropriately.
-                    // If an event spans midnight, this display might need more context.
-                    // For now, if end date is same, show time, else show full.
-                    // This is for events *on* a specific date.
-                    // If an event is all-day (8-5), it will have start/end on same date.
                     eventDetails.append(" to ").append(event.getEnd().getTime().toString());
                 }
             } else {
-                 // All-day event, implies 8-5. Model should set this.
-                 // If event.getEnd() is null, it means it's an all-day event.
-                 // The model should have set start to 8:00 and end to 17:00 for such events.
-                 // So, event.getEnd() should not be null if model processed it.
-                 // This 'else' is a fallback.
                  eventDetails.append(" to 17:00 (All-day)");
             }
 
@@ -119,9 +110,14 @@ public class CalendarViewImpl implements ICalendarView {
         }
     }
 
+    /**
+     * Displays the user's availability status at a specific date and time.
+     * Prints "busy" if there are events scheduled, "available" otherwise.
+     * @param isBusy true if the user is busy at the specified time, false if available
+     * @param dateTimeString the date and time string being queried
+     */
     @Override
     public void displayStatus(boolean isBusy, String dateTimeString) {
-        // "Prints "busy" if the user has any event scheduled at the specified date and time; otherwise, prints "available"."
         if (isBusy) {
             displayMessage("busy");
         } else {
@@ -129,6 +125,9 @@ public class CalendarViewImpl implements ICalendarView {
         }
     }
 
+    /**
+     * Closes the scanner and releases resources.
+     */
     @Override
     public void close() {
         if (scanner != null) {
